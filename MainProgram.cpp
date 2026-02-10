@@ -22,11 +22,11 @@ void homepage();
 
 void movieList(std::string username);
 
+void viewMovie(std::string username, int index);
+
 void addMovie(std::string username);
 
 void helpPage();
-
-void navigation();
 
 
 
@@ -268,7 +268,323 @@ void movieList(std::string username)
         cur = tmp;
     }
 
+    // Prompt user to select a movie
+    std::cout << "\nEnter a movie number to view details, or 'back' to return to homepage: ";
+    std::cin >> input;
+    
+    if (input != "back" && input != "add")
+    {
+        try
+        {
+            int movieIndex = std::stoi(input);
+            viewMovie(username, movieIndex);
+        }
+        catch(...)
+        {
+            std::cout << "Invalid input.\n";
+        }
+    }
+    else if (input == "add")
+    {
+        addMovie(username);
+    }
+
+    else if (input == "back")
+    {
+        homepage();
+    }
+
     return;
+}
+
+void viewMovie(std::string username, int index)
+{
+    std::cout << "\n\n**********\n"
+              << "View Movie\n"
+              << "**********\n";
+    std::cout << "\nNavigation:\n"
+              << "Enter" << " \"home\"" << " to return to the homepage\n"
+              << "Enter" << " \"list\"" << " to return to your list\n"
+              << "Enter" << " \"help\""  << " for more information\n"
+              << "Enter" << " \"exit\"" << " to logout\n";
+
+    std::cout << "\nInstructions:\n"
+              << "Enter " << " \"edit\"" << " to edit this movies information\n"
+              << "Enter " << " \"delete\"" << " to remove this movie from your list\n";
+
+    std::string filename = username + "_movies.csv";
+    std::string currLine;
+
+    std::ifstream infile (filename, std::ios_base::in);
+    if (!infile)
+    {
+        std::cout << "No movie file found.\n";
+        return;
+    }
+
+    movie *head = nullptr;
+    bool skipHeader = true;
+
+    // Parse all movies
+    while (std::getline(infile, currLine))
+    {
+        if (skipHeader)
+        {
+            skipHeader = false;
+            continue;
+        }
+
+        if (currLine.empty())
+            continue;
+
+        movie *newMovie = new movie;
+        newMovie->next = nullptr;
+        std::string temp;
+
+        std::istringstream ss(currLine);
+        std::getline(ss, newMovie->title, ',');
+        if (!std::getline(ss, temp, ','))
+            temp = "0";
+        try { newMovie->year = std::stoi(temp); } catch(...) { newMovie->year = 0; }
+        std::getline(ss, newMovie->genre, ',');
+        std::getline(ss, newMovie->director, ',');
+        std::getline(ss, newMovie->writer, ',');
+        std::getline(ss, newMovie->actor, ',');
+        std::getline(ss, newMovie->review);
+
+        if (head == nullptr)
+            head = newMovie;
+        else
+        {
+            movie *t = head;
+            while (t->next != nullptr)
+                t = t->next;
+            t->next = newMovie;
+        }
+    }
+
+    infile.close();
+
+    if (head == nullptr)
+    {
+        std::cout << "No movies found.\n";
+        return;
+    }
+
+    // Navigate to the requested movie
+    movie *cur = head;
+    int currentIdx = 1;
+    
+    while (cur && currentIdx != index)
+    {
+        cur = cur->next;
+        currentIdx++;
+    }
+
+    if (!cur || currentIdx != index)
+    {
+        std::cout << "Movie not found.\n";
+        // Free the list
+        cur = head;
+        while (cur)
+        {
+            movie *tmp = cur->next;
+            delete cur;
+            cur = tmp;
+        }
+        return;
+    }
+
+    // Display full movie details
+    std::cout << "\n****************************\n";
+    std::cout << "Title: " << cur->title << "\n";
+    if (cur->year == 0)
+        std::cout << "Year: Not specified\n";
+    else
+        std::cout << "Year: " << cur->year << "\n";
+    std::cout << "Genre: " << (cur->genre.empty() ? "Not specified" : cur->genre) << "\n";
+    std::cout << "Director: " << (cur->director.empty() ? "Not specified" : cur->director) << "\n";
+    std::cout << "Writer: " << (cur->writer.empty() ? "Not specified" : cur->writer) << "\n";
+    std::cout << "Main Actor: " << (cur->actor.empty() ? "Not specified" : cur->actor) << "\n";
+    std::cout << "Review: " << (cur->review.empty() ? "Not specified" : cur->review) << "\n";
+    std::cout << "****************************\n";
+
+    // User input loop
+    std::string command;
+    bool viewingMovie = true;
+
+    while (viewingMovie)
+    {
+        std::cout << "\nEnter a command: ";
+        std::cin >> command;
+
+        if (command == "edit")
+        {
+            std::cout << "\nWhich field would you like to edit?\n"
+                      << "1. Title\n"
+                      << "2. Year\n"
+                      << "3. Genre\n"
+                      << "4. Director\n"
+                      << "5. Writer\n"
+                      << "6. Main Actor\n"
+                      << "7. Review\n";
+            std::cout << "Enter field number: ";
+            std::string fieldChoice;
+            std::cin >> fieldChoice;
+            std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+
+            if (fieldChoice == "1")
+            {
+                std::cout << "Enter new title: ";
+                std::getline(std::cin, cur->title);
+            }
+            else if (fieldChoice == "2")
+            {
+                std::cout << "Enter new year: ";
+                std::string yearStr;
+                std::getline(std::cin, yearStr);
+                try { cur->year = std::stoi(yearStr); } catch(...) { cur->year = 0; }
+            }
+            else if (fieldChoice == "3")
+            {
+                std::cout << "Enter new genre: ";
+                std::getline(std::cin, cur->genre);
+            }
+            else if (fieldChoice == "4")
+            {
+                std::cout << "Enter new director: ";
+                std::getline(std::cin, cur->director);
+            }
+            else if (fieldChoice == "5")
+            {
+                std::cout << "Enter new writer: ";
+                std::getline(std::cin, cur->writer);
+            }
+            else if (fieldChoice == "6")
+            {
+                std::cout << "Enter new actor: ";
+                std::getline(std::cin, cur->actor);
+            }
+            else if (fieldChoice == "7")
+            {
+                std::cout << "Enter new review: ";
+                std::getline(std::cin, cur->review);
+            }
+            else
+            {
+                std::cout << "Invalid field number.\n";
+                continue;
+            }
+
+            // Rewrite the CSV file with updated movie
+            std::ofstream outfile (filename, std::ios_base::out);
+            outfile << "Title,Year,Genre,Director,Writer,Actor,Review\n";
+            
+            movie *writePtr = head;
+            while (writePtr)
+            {
+                outfile << writePtr->title << "," << writePtr->year << "," 
+                        << writePtr->genre << "," << writePtr->director << ","
+                        << writePtr->writer << "," << writePtr->actor << ","
+                        << writePtr->review << "\n";
+                writePtr = writePtr->next;
+            }
+            outfile.close();
+
+            std::cout << "Movie updated successfully!\n";
+            std::cout << "\nUpdated movie details:\n";
+            std::cout << "****************************\n";
+            std::cout << "Title: " << cur->title << "\n";
+            if (cur->year == 0)
+                std::cout << "Year: Not specified\n";
+            else
+                std::cout << "Year: " << cur->year << "\n";
+            std::cout << "Genre: " << (cur->genre.empty() ? "Not specified" : cur->genre) << "\n";
+            std::cout << "Director: " << (cur->director.empty() ? "Not specified" : cur->director) << "\n";
+            std::cout << "Writer: " << (cur->writer.empty() ? "Not specified" : cur->writer) << "\n";
+            std::cout << "Main Actor: " << (cur->actor.empty() ? "Not specified" : cur->actor) << "\n";
+            std::cout << "Review: " << (cur->review.empty() ? "Not specified" : cur->review) << "\n";
+            std::cout << "****************************\n";
+        }
+        else if (command == "delete")
+        {
+            std::cout << "Are you sure you want to delete this movie? The movie information cannot be restored once deleted.\n"
+                      << "Enter \"yes\" to confirm deletion:";
+            std::string confirm;
+            std::cin >> confirm;
+
+            if (confirm == "yes")
+            {
+                // Rewrite the CSV file without the deleted movie
+                std::ofstream outfile (filename, std::ios_base::out);
+                outfile << "Title,Year,Genre,Director,Writer,Actor,Review\n";
+                
+                movie *writePtr = head;
+                int writeIdx = 1;
+                while (writePtr)
+                {
+                    if (writeIdx != index)
+                    {
+                        outfile << writePtr->title << "," << writePtr->year << "," 
+                                << writePtr->genre << "," << writePtr->director << ","
+                                << writePtr->writer << "," << writePtr->actor << ","
+                                << writePtr->review << "\n";
+                    }
+                    writePtr = writePtr->next;
+                    writeIdx++;
+                }
+                outfile.close();
+
+                std::cout << "Movie deleted successfully!\n";
+                viewingMovie = false;
+            }
+            else
+            {
+                std::cout << "Deletion cancelled.\n";
+            }
+        }
+        else if (command == "list")
+        {
+            viewingMovie = false;
+            // Free the list before returning
+            cur = head;
+            while (cur)
+            {
+                movie *tmp = cur->next;
+                delete cur;
+                cur = tmp;
+            }
+            movieList(username);
+            return;
+        }
+        else if (command == "home")
+        {
+            viewingMovie = false;
+            homepage();
+        }
+        else if (command == "help")
+        {
+            helpPage();
+        }
+        else if (command == "exit")
+        {
+            std::cout << "Logging out...\n";
+            viewingMovie = false;
+        }
+        else
+        {
+            std::cout << "Invalid command. Try again.\n";
+        }
+    }
+
+    // Free the list
+    cur = head;
+    while (cur)
+    {
+        movie *tmp = cur->next;
+        delete cur;
+        cur = tmp;
+    }
 }
 
 void addMovie(std::string username)
