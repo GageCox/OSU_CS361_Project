@@ -149,9 +149,6 @@ std::string login()
         }
     }
 
-    std::ofstream outfile ("users.txt");
-    outfile << username << "," << password << std::endl;
-
     return username;
 }
 
